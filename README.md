@@ -1,6 +1,6 @@
 # LungExercise (Wear OS)
 
-🚀 **LungExercise**는 Wear OS(안드로이드 워치)에서 동작하는 휴대폰 폐장도인운동법 앱 보조 애플리케이션입니다.  
+> **LungExercise**는 Wear OS(안드로이드 워치)에서 동작하는 휴대폰 폐장도인운동법 앱 보조 애플리케이션입니다.  
 
 ---
 
