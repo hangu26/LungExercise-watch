@@ -14,6 +14,8 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
@@ -162,11 +164,45 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
         Wearable.getMessageClient(this).removeListener(this)
     }
 
+    //    override fun onMessageReceived(messageEvent: MessageEvent) {
+//        if (messageEvent.path == "/start_heart_rate_service") {
+//            Log.d("HeartRate", "심박수 측정 요청 받음")
+//            val intent = Intent(this, HeartRateService::class.java)
+//            startService(intent)
+//        }
+//    }
     override fun onMessageReceived(messageEvent: MessageEvent) {
-        if (messageEvent.path == "/start_heart_rate_service") {
-            Log.d("HeartRate", "심박수 측정 요청 받음")
-            val intent = Intent(this, HeartRateService::class.java)
-            startService(intent)
+        when (messageEvent.path) {
+            "/start_heart_rate_service" -> {
+                Log.d("HeartRateService", "심박수 측정 요청 받음")
+
+                // 1️⃣ 화면 켜기
+                val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+                val wakeLock = powerManager.newWakeLock(
+                    PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+                    "HeartRateService::WakeLockTag"
+                )
+                wakeLock.acquire(360000) // 60초간 화면 켜기
+
+                // 2️⃣ 진동
+                val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    vibrator.vibrate(VibrationEffect.createOneShot(300, VibrationEffect.DEFAULT_AMPLITUDE))
+                } else {
+                    @Suppress("DEPRECATION")
+                    vibrator.vibrate(300)
+                }
+
+                // 3️⃣ HeartRateService 시작
+                val intent = Intent(this, HeartRateService::class.java)
+                startService(intent)
+            }
+
+            "/reset_step_count" -> {
+                Log.d("HeartRateService", "걸음 수 초기화 요청 받음")
+                // HeartRateService의 초기값을 초기화하도록 브로드캐스트 또는 직접 호출
+                HeartRateService.resetStepCountExternally()
+            }
         }
     }
 }

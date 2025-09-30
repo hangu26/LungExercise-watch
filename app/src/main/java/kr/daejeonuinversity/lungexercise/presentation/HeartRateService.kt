@@ -25,12 +25,21 @@ class HeartRateService : Service(), SensorEventListener {
     private var triggerEventListener: TriggerEventListener? = null
     private var stepCount = 0
     private lateinit var wakeLock: PowerManager.WakeLock
+    private var initialStepCount: Int? = null
+
+    companion object {
+        private var externalReset: Boolean = false
+
+        fun resetStepCountExternally() {
+            externalReset = true
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         heartRateSensor = sensorManager.getDefaultSensor(Sensor.TYPE_HEART_RATE)
-        stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
+        stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER )
 //        spo2Sensor = sensorManager.getDefaultSensor(Sensor.TYPE_O)
 
         if (heartRateSensor == null) {
@@ -111,11 +120,12 @@ class HeartRateService : Service(), SensorEventListener {
     private fun acquireWakeLock() {
         val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
         wakeLock = powerManager.newWakeLock(
-            PowerManager.SCREEN_BRIGHT_WAKE_LOCK,
+//            PowerManager.SCREEN_BRIGHT_WAKE_LOCK,
+            PowerManager.PARTIAL_WAKE_LOCK,
             "HeartRateService::WakeLockTag"
         )
         if (!wakeLock.isHeld) {
-            wakeLock.acquire(10 * 60 * 1000L /*10분*/)  // 필요시 시간 조절
+            wakeLock.acquire(30 * 60 * 1000L /*10분*/)  // 필요시 시간 조절
             Log.d("HeartRateService", "💡 WakeLock 획득됨")
         }
     }
@@ -124,7 +134,7 @@ class HeartRateService : Service(), SensorEventListener {
     private fun registerSensor(sensor: Sensor?, label: String) {
         sensor?.let {
             val success =
-                sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
+                sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
             Log.d("Sensor", "📌 $label 센서 등록 성공 여부: $success")
         } ?: Log.w("Sensor", "❌ $label 센서를 사용할 수 없습니다.")
     }
@@ -147,11 +157,29 @@ class HeartRateService : Service(), SensorEventListener {
             }
             }
              **/
-            Sensor.TYPE_STEP_DETECTOR -> {
-                // 걸음 감지마다 1개의 이벤트 발생
-                stepCount += 1
-                Log.d("HeartRateService", "👟 걸음 감지됨, 총 걸음 수: $stepCount")
-                sendStepToPhone(stepCount)
+//            Sensor.TYPE_STEP_COUNTER -> {
+//                event.values.firstOrNull()?.toInt()?.let { totalSteps ->
+//                    if (initialStepCount == null) initialStepCount = totalSteps
+//                    val sessionSteps = totalSteps - (initialStepCount ?: 0)
+//                    Log.d("HeartRateService", "👟 걸음 수 전송: $sessionSteps (누적 $totalSteps)")
+//                    sendStepToPhone(sessionSteps)
+//                }
+//            }
+
+            Sensor.TYPE_STEP_COUNTER -> {
+                event.values.firstOrNull()?.toInt()?.let { totalSteps ->
+                    // 초기값 없거나 외부 리셋 요청 시 초기값 갱신
+                    if (initialStepCount == null || externalReset) {
+                        initialStepCount = totalSteps
+                        externalReset = false
+                        Log.d("HeartRateService", "👟 세션 걸음 수 초기화됨, 초기값: $initialStepCount")
+                    }
+
+                    // 세션 걸음수 계산
+                    val sessionSteps = totalSteps - (initialStepCount ?: 0)
+                    Log.d("HeartRateService", "👟 세션 걸음 수 전송: $sessionSteps (누적 $totalSteps)")
+                    sendStepToPhone(sessionSteps)
+                }
             }
 
         }
