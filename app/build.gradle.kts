@@ -48,7 +48,7 @@ android {
 }
 
 dependencies {
-
+    implementation ("com.google.code.gson:gson:2.8.9")
     implementation("com.google.android.gms:play-services-wearable:19.0.0")
     implementation(platform("androidx.compose:compose-bom:2023.08.00"))
     implementation("androidx.compose.ui:ui")
@@ -57,6 +57,7 @@ dependencies {
     implementation("androidx.wear.compose:compose-foundation:1.1.2")
     implementation("androidx.activity:activity-compose:1.7.2")
     implementation("androidx.core:core-splashscreen:1.0.1")
+    implementation("com.google.firebase:firebase-crashlytics-buildtools:3.0.6")
     androidTestImplementation(platform("androidx.compose:compose-bom:2023.08.00"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")

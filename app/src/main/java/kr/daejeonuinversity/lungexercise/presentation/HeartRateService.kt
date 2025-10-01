@@ -90,24 +90,6 @@ class HeartRateService : Service(), SensorEventListener {
         notificationManager.createNotificationChannel(channel)
     }
 
-    /**
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-    heartRateSensor?.let { sensor ->
-    Log.d("HeartRateService", "📌 심박수 센서 등록 시도")
-
-    val success = sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
-    Log.d("HeartRateService", "📌 SensorEventListener 등록 성공 여부: $success")
-
-    if (!success) {
-    Log.e("HeartRateService", "❌ 센서 등록 실패: 권한 부족 또는 백그라운드 제약 가능성")
-    }
-
-    } ?: Log.e("HeartRateService", "❌ 심박수 센서가 없어서 등록 실패!")
-
-    return START_STICKY
-    }
-     **/
-
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         acquireWakeLock()
 
@@ -149,22 +131,6 @@ class HeartRateService : Service(), SensorEventListener {
                     sendDataToPhone(heartRate)
                 }
             }
-            /**
-            Sensor.TYPE_STEP_COUNTER -> {
-            event.values.firstOrNull()?.let { steps ->
-            Log.d("HeartRateService", "👟 걸음 수: ${steps.toInt()}")
-            sendStepToPhone(steps.toInt())
-            }
-            }
-             **/
-//            Sensor.TYPE_STEP_COUNTER -> {
-//                event.values.firstOrNull()?.toInt()?.let { totalSteps ->
-//                    if (initialStepCount == null) initialStepCount = totalSteps
-//                    val sessionSteps = totalSteps - (initialStepCount ?: 0)
-//                    Log.d("HeartRateService", "👟 걸음 수 전송: $sessionSteps (누적 $totalSteps)")
-//                    sendStepToPhone(sessionSteps)
-//                }
-//            }
 
             Sensor.TYPE_STEP_COUNTER -> {
                 event.values.firstOrNull()?.toInt()?.let { totalSteps ->

@@ -13,6 +13,8 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.PowerManager
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -64,8 +66,16 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
             requestHeartRatePermissions()
         }
 
+        if (hasStepPermission()) startStepCounterService()
+        else requestStepPermission()
+
         requestBatteryOptimizationException()
 
+    }
+
+    private fun startStepCounterService() {
+        val intent = Intent(this, StepCounterService::class.java)
+        startForegroundService(intent)
     }
 
     private fun requestBatteryOptimizationException() {
@@ -117,6 +127,20 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
         }
     }
 
+    private fun hasStepPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            checkSelfPermission(Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+    }
+
+    private fun requestStepPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            requestPermissions(arrayOf(Manifest.permission.ACTIVITY_RECOGNITION), 1001)
+        }
+    }
+
     private fun requestHeartRatePermissions() {
         val permissions = mutableListOf(
             Manifest.permission.BODY_SENSORS,
@@ -164,13 +188,6 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
         Wearable.getMessageClient(this).removeListener(this)
     }
 
-    //    override fun onMessageReceived(messageEvent: MessageEvent) {
-//        if (messageEvent.path == "/start_heart_rate_service") {
-//            Log.d("HeartRate", "심박수 측정 요청 받음")
-//            val intent = Intent(this, HeartRateService::class.java)
-//            startService(intent)
-//        }
-//    }
     override fun onMessageReceived(messageEvent: MessageEvent) {
         when (messageEvent.path) {
             "/start_heart_rate_service" -> {
@@ -203,6 +220,26 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
                 // HeartRateService의 초기값을 초기화하도록 브로드캐스트 또는 직접 호출
                 HeartRateService.resetStepCountExternally()
             }
+
+            "/heart_rate_warning" -> {
+                triggerVibration()
+            }
+
         }
     }
+
+    private fun showToast(message: String) {
+        Handler(Looper.getMainLooper()).post {
+            Toast.makeText(applicationContext, message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun triggerVibration() {
+        val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        vibrator.vibrate(VibrationEffect.createOneShot(5000, VibrationEffect.DEFAULT_AMPLITUDE))
+
+        // 진동과 동시에 토스트
+        showToast("심박수 경고! 너무 높습니다.")
+    }
+
 }

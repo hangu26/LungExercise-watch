@@ -6,12 +6,11 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-feature android:name="android.hardware.type.watch" />
-
     <uses-permission android:name="android.permission.BODY_SENSORS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
-
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE"/>
     <uses-feature android:name="android.hardware.sensor.heartrate" android:required="true" />
 
     <application
@@ -46,6 +45,13 @@
 
         <service
             android:name=".presentation.HeartRateService"
+            android:foregroundServiceType="health"
+            android:enabled="true"
+            android:exported="false"
+            tools:ignore="ForegroundServicePermission" />
+
+        <service
+            android:name=".presentation.StepCounterService"
             android:foregroundServiceType="health"
             android:enabled="true"
             android:exported="false"
