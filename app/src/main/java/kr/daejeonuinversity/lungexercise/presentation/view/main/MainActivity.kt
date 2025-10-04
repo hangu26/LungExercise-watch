@@ -4,7 +4,7 @@
  * changes to the libraries and their usages.
  */
 
-package kr.daejeonuinversity.lungexercise.presentation
+package kr.daejeonuinversity.lungexercise.presentation.view.main
 
 import android.Manifest
 import android.content.Context
@@ -23,30 +23,29 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Devices
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
-import androidx.wear.compose.material.TimeText
 import com.google.android.gms.wearable.MessageClient
 import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.Wearable
-import kr.daejeonuinversity.lungexercise.R
-import kr.daejeonuinversity.lungexercise.presentation.theme.LungExerciseWatchTheme
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kr.daejeonuinversity.lungexercise.presentation.HeartRateService
+import kr.daejeonuinversity.lungexercise.presentation.StepCounterService
+import java.nio.ByteBuffer
+import java.util.Calendar
 
 class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListener {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -70,7 +69,7 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
         else requestStepPermission()
 
         requestBatteryOptimizationException()
-
+        scheduleScreenWakeBeforeInterval()
     }
 
     private fun startStepCounterService() {
@@ -165,6 +164,40 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
         }
     }
 
+    private fun scheduleScreenWakeBeforeInterval() {
+        CoroutineScope(Dispatchers.Default).launch {
+            while (true) {
+                val now = Calendar.getInstance()
+                val nextInterval = Calendar.getInstance().apply {
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                    val minute = (now.get(Calendar.MINUTE) / 30 + 1) * 30
+                    set(Calendar.MINUTE, minute % 60)
+                    if (minute >= 60) add(Calendar.HOUR_OF_DAY, 1)
+                }
+
+                val wakeTime = nextInterval.timeInMillis - 10_000 // 10초 전
+                val delayMs = wakeTime - System.currentTimeMillis()
+                if (delayMs > 0) delay(delayMs)
+
+                // 화면 잠깐 켬
+                wakeScreenBriefly(2000L) // 2초 동안 화면 켜기
+            }
+        }
+    }
+
+    private fun wakeScreenBriefly(durationMs: Long = 1000L) {
+        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        val wakeLock = powerManager.newWakeLock(
+            PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+            "StepCounter::TempWakeLock"
+        )
+        wakeLock.acquire(durationMs)
+        Handler(Looper.getMainLooper()).postDelayed({
+            if (wakeLock.isHeld) wakeLock.release()
+        }, durationMs)
+    }
+
     @Composable
     fun WearApp() {
         MaterialTheme {
@@ -193,13 +226,17 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
             "/start_heart_rate_service" -> {
                 Log.d("HeartRateService", "심박수 측정 요청 받음")
 
+                val buffer = ByteBuffer.wrap(messageEvent.data)
+                val exerciseTime = buffer.long // 밀리초 단위
+
                 // 1️⃣ 화면 켜기
                 val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
                 val wakeLock = powerManager.newWakeLock(
                     PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
                     "HeartRateService::WakeLockTag"
                 )
-                wakeLock.acquire(360000) // 60초간 화면 켜기
+                wakeLock.acquire(exerciseTime + 1000)
+                Log.e("받아온 시간", exerciseTime.toString())
 
                 // 2️⃣ 진동
                 val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
@@ -212,6 +249,15 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
 
                 // 3️⃣ HeartRateService 시작
                 val intent = Intent(this, HeartRateService::class.java)
+                intent.action = "START_STEP_COUNT"
+                startService(intent)
+            }
+
+            "/stop_step_count" -> {
+                Log.d("HeartRateService", "걸음 수 중지 요청 받음")
+                // HeartRateService의 stopStepCounting() 호출
+                val intent = Intent(this, HeartRateService::class.java)
+                intent.action = "STOP_STEP_COUNT"
                 startService(intent)
             }
 

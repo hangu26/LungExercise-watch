@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("kotlin-kapt")
 }
 
 android {
@@ -48,6 +49,17 @@ android {
 }
 
 dependencies {
+
+    // DI 주입(koin)
+    implementation ("io.insert-koin:koin-android:3.1.6")
+
+    // Room KTX 의존성 추가
+    implementation ("androidx.room:room-runtime:2.6.1")
+    kapt ("androidx.room:room-compiler:2.6.1")
+    implementation ("androidx.room:room-ktx:2.6.1")
+
+    implementation ("androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.1")
+
     implementation ("com.google.code.gson:gson:2.8.9")
     implementation("com.google.android.gms:play-services-wearable:19.0.0")
     implementation(platform("androidx.compose:compose-bom:2023.08.00"))
