@@ -75,6 +75,22 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
         if (!hasStepPermission()) requestStepPermission()
     }
 
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        intent?.let {
+            if (it.action == "ACTION_LAUNCH_FROM_PHONE") {
+                // 워치에서 보내온 신호 처리
+                handleLaunchFromPhone()
+            }
+        }
+    }
+
+    private fun handleLaunchFromPhone() {
+        // 앱이 이미 켜져 있을 때 처리할 내용
+        // 예: 특정 화면 전환, UI 갱신 등
+        Toast.makeText(this, "운동 시작", Toast.LENGTH_SHORT).show()
+    }
+
     override fun onResume() {
         super.onResume()
 
