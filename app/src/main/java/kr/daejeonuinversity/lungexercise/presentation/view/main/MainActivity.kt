@@ -171,8 +171,13 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
     @SuppressLint("BatteryLife")
     private fun showBatteryOptimizationDialog() {
         val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-        if (!pm.isIgnoringBatteryOptimizations(packageName) && !batteryDialogShown) {
+
+        val prefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        val dontShowAgain = prefs.getBoolean("dont_show_battery_dialog", false)
+
+        if (!pm.isIgnoringBatteryOptimizations(packageName) && !batteryDialogShown && !dontShowAgain) {
             batteryDialogShown = true
+
             AlertDialog.Builder(this)
                 .setTitle("배터리 최적화 예외 필요")
                 .setMessage(
@@ -180,9 +185,13 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
                             "설정 → 배터리 → 절전 상태 앱 → 해당 앱 선택 → 최적화 해제"
                 )
                 .setPositiveButton("확인", null)
+                .setNeutralButton("다시 보지 않기") { _, _ ->
+                    prefs.edit().putBoolean("dont_show_battery_dialog", true).apply()
+                }
                 .show()
         }
     }
+
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
