@@ -209,23 +209,32 @@ class StepCounterService : Service(), SensorEventListener {
     private fun sendAllStepsToPhone() {
         CoroutineScope(Dispatchers.IO).launch {
             val allSteps = stepDao.getAllStepData()
+
             allSteps.forEach { step ->
-                val dataMap = PutDataMapRequest.create("/step_interval").apply {
+                val request = PutDataMapRequest.create("/step_interval").apply {
                     dataMap.putInt("steps", step.stepCount)
                     dataMap.putLong("intervalStart", step.startTime)
                     dataMap.putLong("intervalEnd", step.endTime)
-                }
+                }.asPutDataRequest().setUrgent()
 
                 Wearable.getDataClient(this@StepCounterService)
-                    .putDataItem(dataMap.asPutDataRequest().setUrgent())
+                    .putDataItem(request)
                     .addOnSuccessListener {
-                        Log.d("HeartRateService", "전송 성공: ${step.startTime} ~ ${step.endTime}")
-                    }
-                    .addOnCompleteListener {
-                        // 전송 완료 시 DB 삭제
+                        Log.d(
+                            "StepCounterService",
+                            "전송 성공 → 삭제: ${step.startTime}"
+                        )
+
                         CoroutineScope(Dispatchers.IO).launch {
-//                            stepDao.deleteStepById(step.id)
+                            stepDao.deleteStepById(step.id)
                         }
+                    }
+                    .addOnFailureListener {
+                        Log.e(
+                            "StepCounterService",
+                            "전송 실패 (보존): ${step.startTime}",
+                            it
+                        )
                     }
             }
         }
@@ -270,8 +279,3 @@ class StepCounterService : Service(), SensorEventListener {
         startForeground(1, notification)
     }
 }
-
-
-
-
-
