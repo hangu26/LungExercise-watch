@@ -16,6 +16,7 @@ import androidx.core.app.NotificationCompat
 import com.google.android.gms.wearable.PutDataMapRequest
 import com.google.android.gms.wearable.Wearable
 import kr.daejeonuinversity.lungexercise.R
+import kr.daejeonuinversity.lungexercise.presentation.util.util.WearSensorState
 
 class HeartRateService : Service(), SensorEventListener {
 
@@ -141,6 +142,7 @@ class HeartRateService : Service(), SensorEventListener {
         when (event.sensor.type) {
             Sensor.TYPE_HEART_RATE -> {
                 event.values.firstOrNull()?.let { heartRate ->
+                    WearSensorState.heartRate = heartRate.toInt()
                     Log.d("HeartRateService", "❤️ 심박수: $heartRate")
                     sendHeartRateToPhone(heartRate)
                 }
@@ -153,8 +155,8 @@ class HeartRateService : Service(), SensorEventListener {
                     initialStepCount = totalSteps
                     Log.d("HeartRateService", "👟 초기 세션 걸음수 설정: $initialStepCount")
                 }
-
                 val sessionSteps = totalSteps - (initialStepCount ?: 0) + sessionStepOffset
+                WearSensorState.stepCount = sessionSteps
                 Log.d("HeartRateService", "👟 세션 걸음 수 전송: $sessionSteps (총 $totalSteps)")
                 sendStepToPhone(sessionSteps)
             }

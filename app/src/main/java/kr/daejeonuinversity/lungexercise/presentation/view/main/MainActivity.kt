@@ -27,8 +27,15 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -46,6 +53,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kr.daejeonuinversity.lungexercise.presentation.HeartRateService
 import kr.daejeonuinversity.lungexercise.presentation.StepCounterService
+import kr.daejeonuinversity.lungexercise.presentation.util.util.WearSensorState
 import java.nio.ByteBuffer
 import java.util.Calendar
 
@@ -252,6 +260,17 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
 
     @Composable
     fun WearApp() {
+        var heartRate by remember { mutableIntStateOf(0) }
+        var stepCount by remember { mutableIntStateOf(0) }
+
+        LaunchedEffect(Unit) {
+            while (true) {
+                heartRate = WearSensorState.heartRate
+                stepCount = WearSensorState.stepCount
+                delay(500)
+            }
+        }
+
         MaterialTheme {
             Box(
                 modifier = Modifier
@@ -259,11 +278,10 @@ class MainActivity : ComponentActivity(), MessageClient.OnMessageReceivedListene
                     .background(Color.Black),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "Wear OS 앱 실행됨!",
-                    color = Color.White,
-                    fontSize = 18.sp
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("심박수: $heartRate", color = Color.White, fontSize = 18.sp)
+                    Text("걸음수: $stepCount", color = Color.White, fontSize = 18.sp)
+                }
             }
         }
     }
